@@ -20,19 +20,6 @@ if which -s e
 	set -xg EDITOR (which e)
 end
 
-
-# functions to manage emacs daemons
-function emacs-processes
-    echo (ps aux | grep 'emacs --daemon' | grep -v 'grep' | awk '{print $2}')
-end
-
-
-function reset-emacs
-   emacs-processes | xargs -I '{}' kill -9 '{}' > /dev/null
-   emacs --daemon
-end
-
-
 # use emacsclient wrapper for emacs if available
 if which emclient > /dev/null
 	alias emacs "emclient; or command emacs"
