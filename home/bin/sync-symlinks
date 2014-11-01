@@ -3,6 +3,7 @@ import argparse
 import errno
 import os
 import shutil
+import tempfile
 from os.path import *
 
 
@@ -72,44 +73,60 @@ def switch_symlinks(src_path, dest_path, dry_run=False, force=False):
     '''
     os_module = DryRunOs() if dry_run else os
 
-    output_dir = dirname(dest_path)
-    try:
-        os_module.makedirs(output_dir)
-    except:
-        pass
-
-    src_path = abspath(realpath(dest_path))
+    src_path = abspath(realpath(src_path))
     dest_path = abspath(dest_path)
     print 'Linking ({} -> {})...'.format(dest_path, src_path)
     made_dir = None
     bak = None
 
-    if not exists(dirname(dest_path)):
-        made_dir = dirname(dest_path)
-        os.makedirs(made_dir)
-    elif islink(dest_path):
-        os_module.unlink(dest_path)
-        print "[WARN] Changing symlink at {} to point to {} from {}".format(
-            dest_path, dest_path, realpath(dest_path))
-    elif force:
-        bak = dest_path + '.bak'
-        shutil.move(dest_path, dest_path + '.bak')
-    else:
-        print "[WARN] {} already exists and isn't a symlink.\
-         Run with -f to overwrite it".format(dest_path)
+    def bak(dest_path):
+        return dest_path + '.bak'
+
+    def prep(dest_path):
+        try:
+            made_dir = dirname(dest_path)
+            os.makedirs(made_dir)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+
+        if not exists(dest_path):
+            return
+
+        if not islink(dest_path) and not force:
+            return
+
+        if abspath(realpath(dest_path)) != src_path:
+            print "[WARN] Changing symlink at {} to point to \
+                {} from {}".format(dest_path, dest_path, realpath(dest_path))
+
+        os_module.renames(dest_path, bak(dest_path))
         return
 
+    bak_file = bak(dest_path)
     try:
+        prep(dest_path)
         os_module.symlink(src_path, dest_path)
-        if bak:
-            shutil.rmtree(bak)
+        if abspath(realpath(dest_path)) != src_path:
+            raise Exception("check failed")
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            print "[WARN] {} already exists and isn't a symlink.".format(dest_path)
+            print "[WARN] Run with -f to overwrite it"
+            return
     except:
         if made_dir:
             shutil.rmtree(made_dir)
-        if bak:
-            shutil.move(bak, dest_path)
+        if exists(bak_file):
+            os_module.renames(bak_file, dest_path)
+        raise
 
-parser = argparse.ArgumentParser('symlink-home')
+    if islink(bak_file):
+        os_module.unlink(bak_file)
+    elif exists(bak_file):
+        shutil.rmtree(bak_file)
+
+parser = argparse.ArgumentParser('sync-symlinks')
 parser.add_argument('source')
 parser.add_argument('destination')
 parser.add_argument('--dry-run', action='store_true')

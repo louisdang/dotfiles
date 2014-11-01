@@ -4,11 +4,12 @@ set -xg PATH $PATH ~/bin/local > /dev/null
 set -xg TERM xterm-256color
 set -xg EDITORS subl emclient vim vi nano
 set -xg HOME_GIT_REPO "~/dotfiles/home"
-set -xg SYMLINK_SYNC_COMMAND "symlink-sync"
+set -xg SYMLINK_SYNC_COMMAND "sync-symlinks"
 set -xg SCRIPT_LOCATION "~/.config/fish/config.fish"
 
 # synchronize home with git
 alias sync-home "$SYMLINK_SYNC_COMMAND $HOME_GIT_REPO ~/"
+alias xargs "xargs -I '{}'"
 
 
 sync-home > /dev/null
