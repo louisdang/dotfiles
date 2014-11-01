@@ -7,4 +7,6 @@ function setup-mac
 	unzip AnonymousPro-1.002.zip
 	open AnonymousPro-1.002.001/*.ttf
 	cd $curr_dir
+
+	open http://www.sublimetext.com/3
 end
