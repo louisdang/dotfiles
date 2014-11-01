@@ -58,9 +58,9 @@ def symlink_sync(src_root, dest_root, dry_run=False, **kwargs):
             elif filename.endswith('-files'):
                 print '[SYNC-FILES] Synchronizing all files under {} (recursive).'.format(root)
                 marked_dirs.add(root)
-                
-            else: 
-                individual_file = os.path.join(root, filename.replace('.symlink-', '', 1))
+
+            elif filename.startswith('.symlink-file-'): 
+                individual_file = os.path.join(root, filename.replace('.symlink-file-', '', 1))
                 if exists(individual_file):
                     _symlink_sync(individual_file)
 
