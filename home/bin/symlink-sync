@@ -1,0 +1,145 @@
+#!/usr/bin/env python
+import argparse
+import errno
+import os
+import shutil
+from os.path import *
+
+
+class DryRunOs(object):
+
+    def makedirs(self, *args, **kwargs):
+        pass
+
+    def unlink(self, *args, **kwargs):
+        pass
+
+    def symlink(self, *args, **kwargs):
+        pass
+
+
+def symlink_sync(src_root, dest_root, dry_run=False, **kwargs):
+    marked_dirs = set()
+    src_root = expandvars(expanduser(src_root))
+    dest_root = expandvars(expanduser(dest_root))
+    jobs = []
+
+    # subfunctions
+    def is_marked(dir):
+        return dir in marked_dirs
+
+    def dest_path(src_path):
+        src_path = src_path.replace('dotfiles/', '.')
+        # print '[DEBUG] src_root: {} src_path: {}'.format(abspath(src_root),
+        # abspath(src_path))
+        dest_leaf = relpath(abspath(src_path), start=abspath(src_root))
+        dest_path = join(dest_root, dest_leaf)
+        return dest_path
+
+    def _symlink_sync(src_path):
+        job = realpath(src_path), dest_path(src_path)
+        jobs.append(job)
+    ######################################################################
+
+    print ''
+    print 'Getting the plan...'
+    for root, dirs, files in os.walk(src_root):
+        files = list(files)
+        dirs = list(dirs)
+
+        root = abspath(root)
+        for file in files:
+            if not file.startswith('.symlink'):
+                continue
+
+            if file.endswith('-dir'):
+                print '[SYNC-DIR] Synchronizing directory {}.'.format(root)
+                dirs[:] = []
+                _symlink_sync(root)
+                continue
+
+            elif file.endswith('-files'):
+                print '[SYNC-FILES] Synchronizing all files under {} (recursive).'.format(root)
+                marked_dirs.add(root)
+
+        if root in marked_dirs:
+            marked_dirs.update(set([join(root, dir) for dir in dirs]))
+            for file in files:
+                if not file.startswith('.'):
+                    _symlink_sync(join(root, file))
+
+    print ''
+    print 'Linking...'
+    for src_path, dest_path in jobs:
+        switch_symlinks(
+            abspath(src_path), abspath(dest_path), dry_run, **kwargs)
+
+    print ''
+    print 'Checking symlinks...'
+    all_good = False
+    for src_path, dest_path in jobs:
+        expected = abspath(realpath(src_path))
+        actual = abspath(realpath(dest_path))
+
+        if not islink(dest_path):
+            print '[WARN] {} is not a symlink.'.format(dest_path)
+        elif expected != actual:
+            check_link(src_path, dest_path)
+
+        all_good = True
+
+    if all_good:
+        print 'All good!'
+
+
+def switch_symlinks(src_path, dest_path, dry_run=False, force=False):
+    '''
+    Creates new symlinks and switch them. If dest_path exists but is not a symlink,
+    skip.
+    '''
+    os_module = DryRunOs() if dry_run else os
+
+    output_dir = dirname(dest_path)
+    try:
+        os_module.makedirs(output_dir)
+    except:
+        pass
+
+    src_path = abspath(realpath(src_path))
+    dest_path = abspath(dest_path)
+    print 'Linking ({} -> {})...'.format(dest_path, src_path)
+
+    def try_symlink():
+        os_module.symlink(src_path, dest_path)
+    try:
+        linked_path = realpath(dest_path)
+        if linked_path != realpath(src_path):
+            try_symlink()
+    except OSError as e:
+        try:
+            if not e.errno == errno.EEXIST:
+                raise
+            os_module.unlink(dest_path)
+            print "[WARN] Changed symlink at {} to point to {} from {}".format(dest_path, src_path, linked_path)
+            try_symlink()
+        except OSError as e2:
+            if not e2.errno == errno.EISDIR:
+                raise
+
+            if force:
+                shutil.rmtree(dest_path)
+                try_symlink()
+            else:
+                print "[WARN] {} already exists and isn't a symlink. Run with -f to overwrite it".format(dest_path)
+                return
+
+
+parser = argparse.ArgumentParser('symlink-home')
+parser.add_argument('source')
+parser.add_argument('destination')
+parser.add_argument('--dry-run', action='store_true')
+parser.add_argument('--force', '-f',  action='store_true')
+args = parser.parse_args()
+symlink_sync(
+    args.source, args.destination, dry_run=args.dry_run, force=args.force)
+print ''

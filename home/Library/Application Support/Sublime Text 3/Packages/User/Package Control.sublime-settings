@@ -1,0 +1,18 @@
+{
+	"installed_packages":
+	[
+		"AdvancedNewFile",
+		"Anaconda",
+		"GitGutter",
+		"Mediawiker",
+		"SideBarEnhancements",
+		"SqlBeautifier",
+		"SublimeLinter",
+		"SublimeLinter-pep8",
+		"SublimeLinter-pyflakes",
+		"SublimePythonIDE",
+		"SunCycle",
+		"Theme - Flatland",
+		"TWiki"
+	]
+}

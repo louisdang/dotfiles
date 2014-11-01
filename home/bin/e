@@ -1,0 +1,4 @@
+#!/usr/bin/env fish
+for editor in $EDITORS
+	eval $editor $argv; and exit > /dev/null
+end

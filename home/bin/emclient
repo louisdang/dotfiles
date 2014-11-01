@@ -1,0 +1,21 @@
+#!/bin/env/fish
+function check-emacs-daemon
+    return (emacs-processes > /dev/null)
+end
+
+function emacs-version-is-24-3
+  emacsclient --version | grep 24.3 > /dev/null
+  return $status
+end
+
+if not emacs-version-is-24-3
+  echo 'Emacs is not version 24.3'
+  exit 1
+end 
+if not check-emacs-daemon
+  echo 'Could not find any daemons running' 
+  echo $EMACS_DAEMON_CHECK
+  exit 1
+end
+
+emacsclient -t $argv
