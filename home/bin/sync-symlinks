@@ -49,13 +49,13 @@ def symlink_sync(src_root, dest_root, dry_run=False, **kwargs):
             if not filename.startswith('.symlink-'):
                 continue
 
-            if filename.endswith('-dir'):
+            if filename.endswith('dir'):
                 print '[SYNC-DIR] Synchronizing directory {}.'.format(root)
                 dirs[:] = []
                 _symlink_sync(root)
                 continue
 
-            elif filename.endswith('-files'):
+            elif filename.endswith('files'):
                 print '[SYNC-FILES] Synchronizing all files under {} (recursive).'.format(root)
                 marked_dirs.add(root)
 
@@ -129,7 +129,10 @@ def switch_symlinks(src_path, dest_path, dry_run=False, force=False):
     if islink(bak_file):
         os_module.unlink(bak_file)
     elif exists(bak_file):
-        shutil.rmtree(bak_file)
+        try:
+            shutil.rmtree(bak_file)
+        except:
+            os_module.unlink(bak_file)
 
 parser = argparse.ArgumentParser('sync-symlinks')
 parser.add_argument('source', nargs='+')

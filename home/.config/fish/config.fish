@@ -6,6 +6,7 @@ set -xg EDITORS subl emclient vim vi nano
 set -xg HOME_GIT_REPO "~/dotfiles/home"
 set -xg SYMLINK_SYNC_COMMAND "sync-symlinks"
 set -xg SCRIPT_LOCATION "~/.config/fish/config.fish"
+set -xg fish_plugins git extract python
 
 # synchronize home with git
 alias sync-home "$SYMLINK_SYNC_COMMAND $HOME_GIT_REPO ~/"
@@ -29,3 +30,12 @@ end
 
 # reload this script
 alias reload (echo source $SCRIPT_LOCATION)
+
+# Path to your oh-my-fish.
+set fish_path $HOME/.oh-my-fish
+
+# Theme
+set fish_theme robbyrussell
+
+# Load oh-my-fish configuration.
+. $fish_path/oh-my-fish.fish
