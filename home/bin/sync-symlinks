@@ -45,19 +45,24 @@ def symlink_sync(src_root, dest_root, dry_run=False, **kwargs):
         dirs = list(dirs)
 
         root = abspath(root)
-        for file in files:
-            if not file.startswith('.symlink'):
+        for filename in files:
+            if not filename.startswith('.symlink-'):
                 continue
 
-            if file.endswith('-dir'):
+            if filename.endswith('-dir'):
                 print '[SYNC-DIR] Synchronizing directory {}.'.format(root)
                 dirs[:] = []
                 _symlink_sync(root)
                 continue
 
-            elif file.endswith('-files'):
+            elif filename.endswith('-files'):
                 print '[SYNC-FILES] Synchronizing all files under {} (recursive).'.format(root)
                 marked_dirs.add(root)
+                
+            else: 
+                individual_file = os.path.join(root, filename.replace('.symlink-', '', 1))
+                if exists(individual_file):
+                    _symlink_sync(individual_file)
 
         if root in marked_dirs:
             marked_dirs.update(set([join(root, dir) for dir in dirs]))
@@ -127,10 +132,13 @@ def switch_symlinks(src_path, dest_path, dry_run=False, force=False):
         shutil.rmtree(bak_file)
 
 parser = argparse.ArgumentParser('sync-symlinks')
-parser.add_argument('source')
+parser.add_argument('source', nargs='+')
 parser.add_argument('destination')
 parser.add_argument('--dry-run', action='store_true')
 parser.add_argument('--force', '-f',  action='store_true')
 args = parser.parse_args()
-symlink_sync(
-    args.source, args.destination, dry_run=args.dry_run, force=args.force)
+for src in args.source:
+  if exists(src):
+    symlink_sync(
+        src, args.destination, dry_run=args.dry_run, force=args.force)
+    break
